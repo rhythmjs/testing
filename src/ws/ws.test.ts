@@ -9,9 +9,10 @@ interface Chat {
 
 const chatWs = () =>
   new RhythmWs()
-    .guard((request) =>
-      request.headers.get("x-key") === "secret" ? undefined : new Response("Unauthorized", { status: 401 }),
-    )
+    .use(async (ctx, next) => {
+      if (ctx.request.headers.get("x-key") === "secret") await next();
+      else ctx.response = new Response("Unauthorized", { status: 401 });
+    })
     .route<Chat>("/chat/:room", {
       upgrade: (_request, params) => ({ room: params.room!, topic: `room:${params.room}` }),
       open(ws) {
@@ -39,7 +40,7 @@ describe("upgradeWs", () => {
     expect(result.data).toEqual({ room: "lobby", topic: "room:lobby" });
   });
 
-  test("reports guard rejections with the response", async () => {
+  test("reports middleware rejections with the response", async () => {
     const result = await upgradeWs(chatWs(), "/chat/lobby");
 
     expect(result.matched).toBe(true);
