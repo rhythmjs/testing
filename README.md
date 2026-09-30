@@ -1,7 +1,7 @@
 # @rhythmjs/testing
 
-Testing utilities for [Rhythm](https://github.com/rhythmjs/rhythm), split by layer the way the
-ecosystem is: kernel helpers for `@rhythmjs/rhythm`, a fetch-based client for `@rhythmjs/router`, a
+Testing utilities for [Rhythm](https://github.com/rhythmjs/rhythm), the Bun-native backend
+framework — split by layer the way the ecosystem is: kernel helpers for `@rhythmjs/rhythm`, a fetch-based client for `@rhythmjs/router`, a
 command runner for `@rhythmjs/cli`, and WebSocket hook harnesses for `@rhythmjs/ws`. Each module is
 exported by its own subpath — there is no root barrel export — and only the kernel peer is required;
 `@rhythmjs/router`, `@rhythmjs/cli`, and `@rhythmjs/ws` are optional peers you install when you use
