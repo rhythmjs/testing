@@ -10,7 +10,7 @@ their subpath.
 ## Install
 
 ```sh
-pnpm add -D @rhythmjs/testing
+bun add -D @rhythmjs/testing
 ```
 
 ## `@rhythmjs/testing/rhythm`
@@ -85,8 +85,8 @@ await runner.teardown();
 
 ## `@rhythmjs/testing/ws`
 
-Resolve WebSocket routes and exercise their hooks without a socket, using recording mocks for the
-crossws peer and message.
+Resolve WebSocket routes and exercise their hooks without a socket, using a recording mock for
+Bun's `ServerWebSocket` peer.
 
 ```ts
 import { resolveWs, mockPeer, fireOpen, fireMessage } from "@rhythmjs/testing/ws";
@@ -104,16 +104,17 @@ expect(peer.sent).toEqual(["joined lobby", 'echo: {"kind":"json"}']);
   (upgrade headers implied for plain paths). Returns the matched `hooks` plus `accepted` /
   `response`, decoding both middleware `Response` rejections and the built-in 404. Note that it
   invokes the resolved `upgrade` hook to detect rejections.
-- `mockPeer({ id?, request? })` — a recording peer: `sent`, `published`, `topics`, `closed`,
+- `mockPeer({ id?, request?, hooks? })` — a recording peer shaped like Bun's `ServerWebSocket`:
+  `peer.data` carries `{ id, request, hooks }`, while `sent`, `published`, `topics`, `closed`, and
   `terminated` capture everything the hooks do to it.
-- `mockMessage(data)` / `fireOpen` / `fireMessage` / `fireClose` — build crossws-shaped messages from
-  a string, bytes, or JSON object and drive the corresponding hooks directly.
+- `fireOpen` / `fireMessage` / `fireClose` — drive the corresponding hooks directly; `fireMessage`
+  takes a string, bytes, or a JSON object (serialized for you).
 
 ## Development
 
 ```sh
-pnpm install
-pnpm test       # vp test
-pnpm typecheck  # tsc --noEmit
-pnpm build      # vp pack
+bun install
+bun test           # bun test runner
+bun run typecheck  # tsc --noEmit
+bun run build      # bun build + tsc declarations
 ```

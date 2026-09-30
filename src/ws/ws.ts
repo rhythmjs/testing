@@ -1,110 +1,126 @@
-import type { RhythmWs, WsHooks } from "@rhythmjs/ws";
+import type { RhythmWs, Server } from "@rhythmjs/ws";
 
-export interface MockPeer {
-  id: string;
-  request: Request;
+/** A recording stand-in for Bun's `ServerWebSocket<Data>`. */
+export interface MockWs<Data extends object = Record<string, string>> {
+  data: Data;
+  readyState: number;
+  remoteAddress: string;
   topics: Set<string>;
   sent: unknown[];
   published: { topic: string; data: unknown }[];
   closed: { code?: number; reason?: string } | null;
   terminated: boolean;
-  send(data: unknown): void;
-  publish(topic: string, data: unknown): void;
+  send(data: unknown): number;
+  publish(topic: string, data: unknown): number;
   subscribe(topic: string): void;
   unsubscribe(topic: string): void;
+  isSubscribed(topic: string): boolean;
   close(code?: number, reason?: string): void;
   terminate(): void;
 }
 
-export interface MockPeerInit {
-  id?: string;
-  request?: string | Request;
-}
-
-export function mockPeer(init: MockPeerInit = {}): MockPeer {
-  const request =
-    typeof init.request === "string" || init.request === undefined
-      ? new Request(new URL(init.request ?? "/", "http://localhost"))
-      : init.request;
-
-  const peer: MockPeer = {
-    id: init.id ?? crypto.randomUUID(),
-    request,
+export function mockWs<Data extends object = Record<string, string>>(data: Data): MockWs<Data> {
+  const peer: MockWs<Data> = {
+    data,
+    readyState: 1,
+    remoteAddress: "127.0.0.1",
     topics: new Set(),
     sent: [],
     published: [],
     closed: null,
     terminated: false,
-    send: (data) => void peer.sent.push(data),
-    publish: (topic, data) => void peer.published.push({ topic, data }),
+    send: (payload) => {
+      peer.sent.push(payload);
+      return typeof payload === "string" ? payload.length : (payload as Uint8Array).byteLength;
+    },
+    publish: (topic, payload) => {
+      peer.published.push({ topic, data: payload });
+      return typeof payload === "string" ? payload.length : (payload as Uint8Array).byteLength;
+    },
     subscribe: (topic) => void peer.topics.add(topic),
     unsubscribe: (topic) => void peer.topics.delete(topic),
+    isSubscribed: (topic) => peer.topics.has(topic),
     close: (code, reason) => {
+      peer.readyState = 3;
       peer.closed = { ...(code === undefined ? {} : { code }), ...(reason === undefined ? {} : { reason }) };
     },
-    terminate: () => void (peer.terminated = true),
+    terminate: () => {
+      peer.readyState = 3;
+      peer.terminated = true;
+    },
   };
   return peer;
 }
 
-export interface MockMessage {
-  rawData: unknown;
-  data: unknown;
-  text(): string;
-  json<T = unknown>(): T;
-  uint8Array(): Uint8Array;
-}
-
-export function mockMessage(data: string | Uint8Array | object): MockMessage {
-  const text = (): string => {
-    if (typeof data === "string") return data;
-    if (data instanceof Uint8Array) return new TextDecoder().decode(data);
-    return JSON.stringify(data);
-  };
-  return {
-    rawData: data,
-    data,
-    text,
-    json: <T = unknown>() => JSON.parse(text()) as T,
-    uint8Array: () => (data instanceof Uint8Array ? data : new TextEncoder().encode(text())),
-  };
-}
-
-export interface WsResolution {
-  accepted: boolean;
-  hooks: WsHooks;
+export interface WsUpgradeResult<Data extends object = Record<string, string>> {
+  /** false when the request was not a matching websocket upgrade (RhythmWs returned null). */
+  matched: boolean;
+  upgraded: boolean;
   response: Response | null;
+  /** The `ws.data` the connection was upgraded with; feed it to `mockWs`. */
+  data: Data | null;
+  headers: Bun.HeadersInit | null;
 }
 
-export async function resolveWs(ws: RhythmWs, request: string | Request): Promise<WsResolution> {
+/**
+ * Drive `RhythmWs.upgrade` against a mock server: guards, the route's
+ * `upgrade`, and `headers` all run for real; nothing listens on a socket.
+ */
+export async function upgradeWs<Data extends object = Record<string, string>>(
+  ws: RhythmWs,
+  request: string | Request,
+): Promise<WsUpgradeResult<Data>> {
   const req =
     typeof request === "string"
-      ? new Request(new URL(request, "http://localhost"), { headers: { upgrade: "websocket" } })
+      ? new Request(new URL(request, "http://localhost").toString(), { headers: { upgrade: "websocket" } })
       : request;
 
-  const hooks = await ws.resolve(req);
-  try {
-    const result = await hooks.upgrade?.(req as never);
-    if (result instanceof Response && result.status >= 400) return { accepted: false, hooks, response: result };
-    return { accepted: true, hooks, response: null };
-  } catch (error) {
-    if (error instanceof Response) return { accepted: false, hooks, response: error };
-    throw error;
-  }
+  let didUpgrade = false;
+  let captured: { data: unknown; headers: Bun.HeadersInit | null } = { data: null, headers: null };
+  const server = {
+    upgrade(_request: Request, options?: { data?: unknown; headers?: Bun.HeadersInit }) {
+      didUpgrade = true;
+      captured = { data: options?.data, headers: options?.headers ?? null };
+      return true;
+    },
+  } as unknown as Server;
+
+  const pending = ws.upgrade(req, server);
+  if (pending === null) return { matched: false, upgraded: false, response: null, data: null, headers: null };
+  const response = (await pending) ?? null;
+  const upgraded = didUpgrade && response === null;
+  return {
+    matched: true,
+    upgraded,
+    response,
+    data: upgraded ? (captured.data as Data) : null,
+    headers: upgraded ? captured.headers : null,
+  };
 }
 
-export async function fireOpen(hooks: WsHooks, peer: MockPeer): Promise<void> {
-  await hooks.open?.(peer as never);
+export function fireOpen<Data extends object>(ws: RhythmWs, peer: MockWs<Data>): void | Promise<void> {
+  return ws.websocket.open?.(peer as never);
 }
 
-export async function fireMessage(hooks: WsHooks, peer: MockPeer, data: string | Uint8Array | object): Promise<void> {
-  await hooks.message?.(peer as never, mockMessage(data) as never);
+export function fireMessage<Data extends object>(
+  ws: RhythmWs,
+  peer: MockWs<Data>,
+  data: string | Uint8Array | object,
+): void | Promise<void> {
+  const message =
+    typeof data === "string" ? data : data instanceof Uint8Array ? Buffer.from(data) : JSON.stringify(data);
+  return ws.websocket.message(peer as never, message);
 }
 
-export async function fireClose(
-  hooks: WsHooks,
-  peer: MockPeer,
-  details: { code?: number; reason?: string } = {},
-): Promise<void> {
-  await hooks.close?.(peer as never, details as never);
+export function fireClose<Data extends object>(
+  ws: RhythmWs,
+  peer: MockWs<Data>,
+  code = 1000,
+  reason = "",
+): void | Promise<void> {
+  return ws.websocket.close?.(peer as never, code, reason);
+}
+
+export function fireDrain<Data extends object>(ws: RhythmWs, peer: MockWs<Data>): void | Promise<void> {
+  return ws.websocket.drain?.(peer as never);
 }

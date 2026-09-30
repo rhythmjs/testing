@@ -48,11 +48,14 @@ export function createTestClient(app: TestableApp | RhythmRouter, options: TestC
       if (!headers.has("content-type")) headers.set("content-type", "application/json");
       body = JSON.stringify(requestOptions.json);
     }
-    return handler(new Request(new URL(path, baseUrl), { method, headers, ...(body === null ? {} : { body }) }));
+    return handler(
+      new Request(new URL(path, baseUrl).toString(), { method, headers, ...(body === null ? {} : { body }) }),
+    );
   };
 
   return {
-    fetch: (input, init) => handler(typeof input === "string" ? new Request(new URL(input, baseUrl), init) : input),
+    fetch: (input, init) =>
+      handler(typeof input === "string" ? new Request(new URL(input, baseUrl).toString(), init) : input),
     get: (path, requestOptions) => request("GET", path, requestOptions),
     head: (path, requestOptions) => request("HEAD", path, requestOptions),
     post: (path, requestOptions) => request("POST", path, requestOptions),
@@ -74,7 +77,7 @@ export async function runHttpMiddleware<TExtras extends object = {}>(
   request: string | Request = "http://localhost/",
   extras?: TExtras,
 ): Promise<HttpMiddlewareRun<RhythmHttpContext & TExtras>> {
-  const req = typeof request === "string" ? new Request(new URL(request, "http://localhost")) : request;
+  const req = typeof request === "string" ? new Request(new URL(request, "http://localhost").toString()) : request;
   const ctx = Object.assign(createHttpContext(req), extras) as RhythmHttpContext & TExtras;
   const { nextCalled } = await runMiddleware(middleware, ctx);
   return { ctx, nextCalled, response: toResponse(ctx.response) };

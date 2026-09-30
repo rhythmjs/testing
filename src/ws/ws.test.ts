@@ -1,97 +1,115 @@
-import { describe, expect, test } from "vite-plus/test";
+import { describe, expect, test } from "bun:test";
 import { RhythmWs } from "@rhythmjs/ws";
-import { fireClose, fireMessage, fireOpen, mockMessage, mockPeer, resolveWs } from "./ws";
+import { fireClose, fireMessage, fireOpen, mockWs, upgradeWs } from "./ws";
+
+interface Chat {
+  room: string;
+  topic: string;
+}
 
 const chatWs = () =>
   new RhythmWs()
-    .use(async (request, next) => {
-      if (request.headers.get("x-key") !== "secret") return new Response("Unauthorized", { status: 401 });
-      return next();
-    })
-    .ws("/chat/:room", (params) => ({
-      open(peer) {
-        peer.send(`joined ${params.room}`);
+    .guard((request) =>
+      request.headers.get("x-key") === "secret" ? undefined : new Response("Unauthorized", { status: 401 }),
+    )
+    .route<Chat>("/chat/:room", {
+      upgrade: (_request, params) => ({ room: params.room!, topic: `room:${params.room}` }),
+      open(ws) {
+        ws.subscribe(ws.data.topic);
+        ws.send(`joined ${ws.data.room}`);
       },
-      message(peer, message) {
-        peer.send(`echo: ${message.text()}`);
+      message(ws, message) {
+        ws.send(`echo: ${typeof message === "string" ? message : new TextDecoder().decode(message)}`);
       },
-      close(peer) {
-        void peer;
+      close(ws) {
+        ws.publish(ws.data.topic, "left");
       },
-    }));
+    });
 
 const authed = (path: string) =>
-  new Request(new URL(path, "http://localhost"), { headers: { upgrade: "websocket", "x-key": "secret" } });
+  new Request(new URL(path, "http://localhost").toString(), { headers: { upgrade: "websocket", "x-key": "secret" } });
 
-describe("resolveWs", () => {
-  test("resolves a matching route to its hooks with params applied", async () => {
-    const { accepted, hooks } = await resolveWs(chatWs(), authed("/chat/lobby"));
-    expect(accepted).toBe(true);
+describe("upgradeWs", () => {
+  test("runs the route's upgrade and reports the attached ws.data", async () => {
+    const result = await upgradeWs<Chat>(chatWs(), authed("/chat/lobby"));
 
-    const peer = mockPeer();
-    await fireOpen(hooks, peer);
-    expect(peer.sent).toEqual(["joined lobby"]);
+    expect(result.matched).toBe(true);
+    expect(result.upgraded).toBe(true);
+    expect(result.response).toBeNull();
+    expect(result.data).toEqual({ room: "lobby", topic: "room:lobby" });
   });
 
-  test("reports middleware rejections with the response", async () => {
-    const { accepted, response } = await resolveWs(chatWs(), "/chat/lobby");
+  test("reports guard rejections with the response", async () => {
+    const result = await upgradeWs(chatWs(), "/chat/lobby");
 
-    expect(accepted).toBe(false);
-    expect(response?.status).toBe(401);
-    expect(await response?.text()).toBe("Unauthorized");
+    expect(result.matched).toBe(true);
+    expect(result.upgraded).toBe(false);
+    expect(result.response?.status).toBe(401);
+    expect(await result.response?.text()).toBe("Unauthorized");
   });
 
-  test("reports unmatched paths as a 404 rejection", async () => {
-    const { accepted, response } = await resolveWs(chatWs(), authed("/nope"));
+  test("reports unmatched paths and plain HTTP requests as unmatched", async () => {
+    expect((await upgradeWs(chatWs(), authed("/nope"))).matched).toBe(false);
+    expect((await upgradeWs(chatWs(), new Request("http://localhost/chat/lobby"))).matched).toBe(false);
+  });
 
-    expect(accepted).toBe(false);
-    expect(response?.status).toBe(404);
+  test("reports a route-upgrade rejection and captured headers", async () => {
+    const guarded = new RhythmWs().route("/vip", {
+      upgrade: (request, params) =>
+        request.headers.get("x-vip") === "yes" ? params : new Response("Forbidden", { status: 403 }),
+      headers: { "x-served-by": "vip" },
+    });
+
+    const denied = await upgradeWs(guarded, "/vip");
+    expect(denied.response?.status).toBe(403);
+
+    const allowed = await upgradeWs(
+      guarded,
+      new Request("http://localhost/vip", { headers: { upgrade: "websocket", "x-vip": "yes" } }),
+    );
+    expect(allowed.upgraded).toBe(true);
+    expect(allowed.headers).toEqual({ "x-served-by": "vip" });
   });
 });
 
 describe("hook firing", () => {
-  test("fireMessage delivers text, binary, and json payloads", async () => {
-    const { hooks } = await resolveWs(chatWs(), authed("/chat/dev"));
-    const peer = mockPeer();
+  test("fireOpen/fireMessage dispatch through ws.data to the matched route", async () => {
+    const ws = chatWs();
+    const { data } = await upgradeWs<Chat>(ws, authed("/chat/dev"));
+    const peer = mockWs(data!);
 
-    await fireMessage(hooks, peer, "hi");
-    await fireMessage(hooks, peer, new TextEncoder().encode("bytes"));
-    await fireMessage(hooks, peer, { kind: "json" });
+    await fireOpen(ws, peer);
+    await fireMessage(ws, peer, "hi");
+    await fireMessage(ws, peer, new TextEncoder().encode("bytes"));
 
-    expect(peer.sent).toEqual(["echo: hi", "echo: bytes", 'echo: {"kind":"json"}']);
+    expect(peer.isSubscribed("room:dev")).toBe(true);
+    expect(peer.sent).toEqual(["joined dev", "echo: hi", "echo: bytes"]);
   });
 
-  test("fireClose invokes the close hook without error", async () => {
-    const { hooks } = await resolveWs(chatWs(), authed("/chat/dev"));
+  test("fireClose invokes the close handler", async () => {
+    const ws = chatWs();
+    const { data } = await upgradeWs<Chat>(ws, authed("/chat/dev"));
+    const peer = mockWs(data!);
 
-    await expect(fireClose(hooks, mockPeer(), { code: 1000, reason: "done" })).resolves.toBeUndefined();
+    await fireClose(ws, peer, 1001, "bye");
+    expect(peer.published).toEqual([{ topic: "room:dev", data: "left" }]);
   });
 });
 
-describe("mockPeer", () => {
+describe("mockWs", () => {
   test("records sends, publishes, subscriptions, and closure", () => {
-    const peer = mockPeer({ id: "p1", request: "/chat/lobby" });
+    const peer = mockWs({ room: "lobby" });
 
     peer.send("a");
     peer.publish("room", "b");
     peer.subscribe("room");
     peer.close(1001, "bye");
 
-    expect(peer.id).toBe("p1");
-    expect(new URL(peer.request.url).pathname).toBe("/chat/lobby");
+    expect(peer.data.room).toBe("lobby");
     expect(peer.sent).toEqual(["a"]);
     expect(peer.published).toEqual([{ topic: "room", data: "b" }]);
-    expect([...peer.topics]).toEqual(["room"]);
+    expect(peer.isSubscribed("room")).toBe(true);
     expect(peer.closed).toEqual({ code: 1001, reason: "bye" });
-  });
-});
-
-describe("mockMessage", () => {
-  test("converts between text, json, and bytes from any input", () => {
-    expect(mockMessage("plain").text()).toBe("plain");
-    expect(mockMessage({ a: 1 }).json()).toEqual({ a: 1 });
-    expect(mockMessage('{"b":2}').json()).toEqual({ b: 2 });
-    expect(new TextDecoder().decode(mockMessage("xy").uint8Array())).toBe("xy");
-    expect(mockMessage(new TextEncoder().encode("raw")).text()).toBe("raw");
+    expect(peer.readyState).toBe(3);
   });
 });
