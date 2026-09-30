@@ -1,9 +1,9 @@
 # @rhythmjs/testing
 
 Testing utilities for [Rhythm](https://github.com/rhythmjs/rhythm), the Bun-native backend
-framework — split by layer the way the ecosystem is: kernel helpers for `@rhythmjs/rhythm`, a fetch-based client for `@rhythmjs/router`, a
+framework, split by layer the way the ecosystem is: kernel helpers for `@rhythmjs/rhythm`, a fetch-based client for `@rhythmjs/router`, a
 command runner for `@rhythmjs/cli`, and WebSocket hook harnesses for `@rhythmjs/ws`. Each module is
-exported by its own subpath — there is no root barrel export — and only the kernel peer is required;
+exported by its own subpath (there is no root barrel export) and only the kernel peer is required;
 `@rhythmjs/router`, `@rhythmjs/cli`, and `@rhythmjs/ws` are optional peers you install when you use
 their subpath.
 
@@ -20,7 +20,7 @@ Kernel-level helpers, no HTTP or CLI involved.
 ```ts
 import { mockModule, runMiddleware } from "@rhythmjs/testing/rhythm";
 
-// Swap a real module for a mock at register — the overrideProvider equivalent:
+// Swap a real module for a mock at register, the overrideProvider equivalent:
 const app = new Rhythm()
   // production: .register(configModule.forRoot(...configs), (m) => ({ configService: m.configService }))
   .register(mockModule({ configService: fakeConfigService }), (m) => ({ configService: m.configService }))
@@ -30,15 +30,15 @@ const app = new Rhythm()
 const { ctx, nextCalled } = await runMiddleware(gate, { allowed: true });
 ```
 
-- `mockModule(values, dispose?)` — a real `Rhythm` module providing `values`; `dispose` runs on
+- `mockModule(values, dispose?)`: a real `Rhythm` module providing `values`; `dispose` runs on
   `teardown()`. Module wiring is structural, so a mock satisfying a child module's declared input
-  context compiles exactly like the real thing — and a mismatch is a compile error.
-- `runMiddleware(middleware, ctx)` — executes one middleware against the context you pass, returning
+  context compiles exactly like the real thing, and a mismatch is a compile error.
+- `runMiddleware(middleware, ctx)`: executes one middleware against the context you pass, returning
   the mutated `ctx` and whether `next()` was reached.
 
 ## `@rhythmjs/testing/router`
 
-Drive an HTTP app — or a bare router — through real `Request`/`Response` objects, in memory: no
+Drive an HTTP app (or a bare router) through real `Request`/`Response` objects, in memory: no
 sockets, no ports.
 
 ```ts
@@ -54,10 +54,10 @@ await client.fetch(new Request("http://localhost/raw")); // full control when ne
 await client.teardown(); // disposes the app's providers
 ```
 
-- `createTestClient(appOrRouter, { baseUrl? })` — `get` / `head` / `post` / `put` / `patch` /
+- `createTestClient(appOrRouter, { baseUrl? })`: `get` / `head` / `post` / `put` / `patch` /
   `delete` `(path, { headers?, body?, json? })`, raw `fetch`, and `teardown`. Providers resolve
   lazily on the first request (the kernel's own `setup()`).
-- `runHttpMiddleware(middleware, request?, extras?)` — the kernel harness specialized for HTTP:
+- `runHttpMiddleware(middleware, request?, extras?)`: the kernel harness specialized for HTTP;
   builds a real `RhythmHttpContext` from a path or `Request`, merges `extras` for derive-dependent
   middleware (`ctx.user`, `ctx.configService`, …), and returns the materialized `Response` alongside
   `ctx` and `nextCalled`.
@@ -79,7 +79,7 @@ await runner.run("import", { stdin: "piped,csv,rows\n" }); // stdin as a string
 await runner.teardown();
 ```
 
-- `createCliRunner(cliOrApp)` — `run(argv, { stdin? })` accepts an argv array or a plain command
+- `createCliRunner(cliOrApp)`: `run(argv, { stdin? })` accepts an argv array or a plain command
   string, parses flags exactly like the real adapters, and returns `{ stdout, stderr, exitCode, ctx }`.
   Nothing is written to the process's actual stdio.
 
@@ -100,21 +100,21 @@ await fireMessage(hooks, peer, { kind: "json" }); // string | Uint8Array | objec
 expect(peer.sent).toEqual(["joined lobby", 'echo: {"kind":"json"}']);
 ```
 
-- `resolveWs(ws, request)` — runs the ws middleware chain and route matching for a path or `Request`
+- `resolveWs(ws, request)`: runs the ws middleware chain and route matching for a path or `Request`
   (upgrade headers implied for plain paths). Returns the matched `hooks` plus `accepted` /
   `response`, decoding both middleware `Response` rejections and the built-in 404. Note that it
   invokes the resolved `upgrade` hook to detect rejections.
-- `mockPeer({ id?, request?, hooks? })` — a recording peer shaped like Bun's `ServerWebSocket`:
+- `mockPeer({ id?, request?, hooks? })`: a recording peer shaped like Bun's `ServerWebSocket`;
   `peer.data` carries `{ id, request, hooks }`, while `sent`, `published`, `topics`, `closed`, and
   `terminated` capture everything the hooks do to it.
-- `fireOpen` / `fireMessage` / `fireClose` — drive the corresponding hooks directly; `fireMessage`
+- `fireOpen` / `fireMessage` / `fireClose`: drive the corresponding hooks directly; `fireMessage`
   takes a string, bytes, or a JSON object (serialized for you).
 
 ## Development
 
 ```sh
 bun install
-bun test           # bun test runner
-bun run typecheck  # tsc --noEmit
-bun run build      # bun build + tsc declarations
+bun test # bun test runner
+bun run typecheck # tsc --noEmit
+bun run build # bun build + tsc declarations
 ```

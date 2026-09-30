@@ -1,6 +1,5 @@
 import type { RhythmWs, Server } from "@rhythmjs/ws";
 
-/** A recording stand-in for Bun's `ServerWebSocket<Data>`. */
 export interface MockWs<Data extends object = Record<string, string>> {
   data: Data;
   readyState: number;
@@ -53,19 +52,13 @@ export function mockWs<Data extends object = Record<string, string>>(data: Data)
 }
 
 export interface WsUpgradeResult<Data extends object = Record<string, string>> {
-  /** false when the request was not a matching websocket upgrade (RhythmWs returned null). */
   matched: boolean;
   upgraded: boolean;
   response: Response | null;
-  /** The `ws.data` the connection was upgraded with; feed it to `mockWs`. */
   data: Data | null;
   headers: Bun.HeadersInit | null;
 }
 
-/**
- * Drive `RhythmWs.upgrade` against a mock server: guards, the route's
- * `upgrade`, and `headers` all run for real; nothing listens on a socket.
- */
 export async function upgradeWs<Data extends object = Record<string, string>>(
   ws: RhythmWs,
   request: string | Request,
