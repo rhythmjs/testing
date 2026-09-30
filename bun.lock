@@ -5,10 +5,9 @@
     "": {
       "name": "@rhythmjs/testing",
       "devDependencies": {
-        "@rhythmjs/cli": "^0.0.9",
-        "@rhythmjs/rhythm": "^0.0.9",
-        "@rhythmjs/router": "^0.0.9",
-        "@rhythmjs/ws": "^0.0.1",
+        "@rhythmjs/cli": "^0.0.11",
+        "@rhythmjs/rhythm": "^0.0.11",
+        "@rhythmjs/router": "^0.0.11",
         "@types/bun": "^1.2.0",
         "@types/node": "^26.6.3",
         "oxlint": "^1.0.0",
@@ -16,10 +15,10 @@
         "typescript": "^7.0.2",
       },
       "peerDependencies": {
-        "@rhythmjs/cli": "^0.0.9",
-        "@rhythmjs/rhythm": "^0.0.9",
-        "@rhythmjs/router": "^0.0.9",
-        "@rhythmjs/ws": "^0.0.1",
+        "@rhythmjs/cli": "^0.0.11",
+        "@rhythmjs/rhythm": "^0.0.11",
+        "@rhythmjs/router": "^0.0.11",
+        "@rhythmjs/ws": "^0.0.2",
       },
       "optionalPeers": [
         "@rhythmjs/cli",
@@ -67,13 +66,11 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.86.0", "", { "os": "win32", "cpu": "x64" }, "sha512-az4dzifCRzES1crwu6pDFXzJTIanrdxXFL9TbiJWrx9LKcuacbR83aPvxDA1LKLNswi/RoqitC7Afcflhu3zBQ=="],
 
-    "@rhythmjs/cli": ["@rhythmjs/cli@0.0.9", "", { "dependencies": { "@rhythmjs/rhythm": "0.0.9" } }, "sha512-rjWIT42H62regr3lrVCt/EXrQ4gr489/m+Ay0clijeK8OfwBwYiFFmzFoHBRAXBcXg97viuudQ0a/ZftdErcKg=="],
+    "@rhythmjs/cli": ["@rhythmjs/cli@0.0.11", "", { "dependencies": { "@rhythmjs/rhythm": "0.0.11" } }, "sha512-DWf4KSg1JJ+ryywjT8iOtf47pGGvv+8FkXyi4hs44MwasQEvsnW2Zyn0YcZ0l4XUVV/HbALvFyRbUum8QeIyDw=="],
 
-    "@rhythmjs/rhythm": ["@rhythmjs/rhythm@0.0.9", "", {}, "sha512-cWAUIIfdj6rPekHvKF91G1OQVUv4jnW69FdVdwZlzSUDuf7ac5ZZUfJTeAg1k81mikMYCEclg+MXxmUEADyJMg=="],
+    "@rhythmjs/rhythm": ["@rhythmjs/rhythm@0.0.11", "", {}, "sha512-+e3eQSsh/3wRGiF9sqtO6rkSa75eH8aDumgfwr2mAWdxy7s/14ns8Fx9uIT8AzXWKYTUsqBY2ITkw4YS3sENDg=="],
 
-    "@rhythmjs/router": ["@rhythmjs/router@0.0.9", "", { "dependencies": { "@rhythmjs/rhythm": "0.0.9", "srvx": "^1.0.5" } }, "sha512-Ag0vs0HTeEHfH635Fh9WwrLfzY5/HFNyXRsa+lV7ODXfJuw5YNePVPO/ccMCTxTxKYkBIajQsGB6EQ/wg2luvQ=="],
-
-    "@rhythmjs/ws": ["@rhythmjs/ws@0.0.1", "", { "dependencies": { "crossws": "^0.4.12", "rou3": "^0.11.0" } }, "sha512-kIuQgp655j8F2G8CYCZS3O1QrM4vr8PlsxZJ7SlXLruW3/mhh6gpFyHv7vJreFLHP0p/7cwIzqYF+tRHrZHDXA=="],
+    "@rhythmjs/router": ["@rhythmjs/router@0.0.11", "", { "dependencies": { "@rhythmjs/rhythm": "0.0.11", "rou3": "^0.11.0" } }, "sha512-FyOgZJOBbOTWs4+b7xasz7Jfe3GqurzQ3diV2qjOv4phV8t68TwrkufJgVje75fcYUzVv3/AxhXikqF6w23JdA=="],
 
     "@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
@@ -121,15 +118,11 @@
 
     "bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 
-    "crossws": ["crossws@0.4.12", "", { "peerDependencies": { "srvx": ">=0.11.5" }, "optionalPeers": ["srvx"] }, "sha512-aypfsr6t0uNvkqaZc6zvBfXzC6pLI0/sIulpkV6RwCVtZqG5ebBzv4weImKK0VNCj91Wl9F5j7p5WU4MNrybng=="],
-
     "oxlint": ["oxlint@1.86.0", "", { "optionalDependencies": { "@oxlint/binding-android-arm-eabi": "1.86.0", "@oxlint/binding-android-arm64": "1.86.0", "@oxlint/binding-darwin-arm64": "1.86.0", "@oxlint/binding-darwin-x64": "1.86.0", "@oxlint/binding-freebsd-x64": "1.86.0", "@oxlint/binding-linux-arm-gnueabihf": "1.86.0", "@oxlint/binding-linux-arm-musleabihf": "1.86.0", "@oxlint/binding-linux-arm64-gnu": "1.86.0", "@oxlint/binding-linux-arm64-musl": "1.86.0", "@oxlint/binding-linux-ppc64-gnu": "1.86.0", "@oxlint/binding-linux-riscv64-gnu": "1.86.0", "@oxlint/binding-linux-riscv64-musl": "1.86.0", "@oxlint/binding-linux-s390x-gnu": "1.86.0", "@oxlint/binding-linux-x64-gnu": "1.86.0", "@oxlint/binding-linux-x64-musl": "1.86.0", "@oxlint/binding-openharmony-arm64": "1.86.0", "@oxlint/binding-win32-arm64-msvc": "1.86.0", "@oxlint/binding-win32-ia32-msvc": "1.86.0", "@oxlint/binding-win32-x64-msvc": "1.86.0" }, "peerDependencies": { "oxlint-tsgolint": ">=7.0.2003", "vite-plus": "*" }, "optionalPeers": ["oxlint-tsgolint", "vite-plus"], "bin": { "oxlint": "bin/oxlint" } }, "sha512-og0lhgvZfgGF//gOOmZXvtr+GmBbAGEnbEhv/QUg7UW2Wi4wHMnJbnMD+zuHgPdJxdklfgpPupdlAaAySyxrZg=="],
 
     "prettier": ["prettier@3.9.9", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg=="],
 
     "rou3": ["rou3@0.11.0", "", {}, "sha512-QYkFgNURTMBzmDpfFOpJNscLALbTlmFG/TGl4JVENesWNnrPAt7XHcml56Esb7fprnSRk4iwbgkmpZEPfX5MsA=="],
-
-    "srvx": ["srvx@1.0.5", "", { "bin": { "srvx": "./bin/srvx.mjs" } }, "sha512-KvSKRpgPG/oaq3cyT614OQ2bAa7DynuGamivCZeoZzIUULOdbQz6wUtnnVuC4+DCx2Zglzo8v5gBYmWIWYhDxA=="],
 
     "typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
 
