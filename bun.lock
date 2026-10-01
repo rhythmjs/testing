@@ -6,8 +6,9 @@
       "name": "@rhythmjs/testing",
       "devDependencies": {
         "@rhythmjs/cli": "^0.0.11",
-        "@rhythmjs/rhythm": "^0.0.11",
-        "@rhythmjs/router": "^0.0.11",
+        "@rhythmjs/rhythm": "^0.0.14",
+        "@rhythmjs/router": "^0.0.13",
+        "@rhythmjs/ws": "^0.0.3",
         "@types/bun": "^1.2.0",
         "@types/node": "^26.6.3",
         "oxlint": "^1.0.0",
@@ -16,9 +17,9 @@
       },
       "peerDependencies": {
         "@rhythmjs/cli": "^0.0.11",
-        "@rhythmjs/rhythm": "^0.0.11",
-        "@rhythmjs/router": "^0.0.11",
-        "@rhythmjs/ws": "^0.0.2",
+        "@rhythmjs/rhythm": "^0.0.14",
+        "@rhythmjs/router": "^0.0.13",
+        "@rhythmjs/ws": "^0.0.3",
       },
       "optionalPeers": [
         "@rhythmjs/cli",
@@ -68,9 +69,11 @@
 
     "@rhythmjs/cli": ["@rhythmjs/cli@0.0.11", "", { "dependencies": { "@rhythmjs/rhythm": "0.0.11" } }, "sha512-DWf4KSg1JJ+ryywjT8iOtf47pGGvv+8FkXyi4hs44MwasQEvsnW2Zyn0YcZ0l4XUVV/HbALvFyRbUum8QeIyDw=="],
 
-    "@rhythmjs/rhythm": ["@rhythmjs/rhythm@0.0.11", "", {}, "sha512-+e3eQSsh/3wRGiF9sqtO6rkSa75eH8aDumgfwr2mAWdxy7s/14ns8Fx9uIT8AzXWKYTUsqBY2ITkw4YS3sENDg=="],
+    "@rhythmjs/rhythm": ["@rhythmjs/rhythm@0.0.14", "", {}, "sha512-MFpBWkxW8xPxTL2F0sFLgvtB9FLurTIL7vRZWu/Vj+/23MC+Q85gNdoahn+2Rvi7s0XceCrv3wrZDJqbR1uQVA=="],
 
-    "@rhythmjs/router": ["@rhythmjs/router@0.0.11", "", { "dependencies": { "@rhythmjs/rhythm": "0.0.11", "rou3": "^0.11.0" } }, "sha512-FyOgZJOBbOTWs4+b7xasz7Jfe3GqurzQ3diV2qjOv4phV8t68TwrkufJgVje75fcYUzVv3/AxhXikqF6w23JdA=="],
+    "@rhythmjs/router": ["@rhythmjs/router@0.0.13", "", { "dependencies": { "@rhythmjs/rhythm": "0.0.14", "rou3": "^0.11.0" } }, "sha512-vZIZIvk08tgPHTsEjMKrmG124AbgbMjVstQHkHUmwk0kVWBiAp/kRvcLY5NgO8RVrq2ah/RAgWFfWIdj3eHByQ=="],
+
+    "@rhythmjs/ws": ["@rhythmjs/ws@0.0.3", "", { "dependencies": { "rou3": "^0.11.0" }, "peerDependencies": { "@rhythmjs/rhythm": "^0.0.11" } }, "sha512-jmHWc0FHbs6dnWNP2je4r+72IAusV9aIDaENyiqk2CL6ORz/it6jy88leoiCwAF12JP9dEA1D1r8lM5blGrmIg=="],
 
     "@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
@@ -127,5 +130,7 @@
     "typescript": ["typescript@7.0.2", "", { "optionalDependencies": { "@typescript/typescript-aix-ppc64": "7.0.2", "@typescript/typescript-darwin-arm64": "7.0.2", "@typescript/typescript-darwin-x64": "7.0.2", "@typescript/typescript-freebsd-arm64": "7.0.2", "@typescript/typescript-freebsd-x64": "7.0.2", "@typescript/typescript-linux-arm": "7.0.2", "@typescript/typescript-linux-arm64": "7.0.2", "@typescript/typescript-linux-loong64": "7.0.2", "@typescript/typescript-linux-mips64el": "7.0.2", "@typescript/typescript-linux-ppc64": "7.0.2", "@typescript/typescript-linux-riscv64": "7.0.2", "@typescript/typescript-linux-s390x": "7.0.2", "@typescript/typescript-linux-x64": "7.0.2", "@typescript/typescript-netbsd-arm64": "7.0.2", "@typescript/typescript-netbsd-x64": "7.0.2", "@typescript/typescript-openbsd-arm64": "7.0.2", "@typescript/typescript-openbsd-x64": "7.0.2", "@typescript/typescript-sunos-x64": "7.0.2", "@typescript/typescript-win32-arm64": "7.0.2", "@typescript/typescript-win32-x64": "7.0.2" }, "bin": { "tsc": "bin/tsc" } }, "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="],
 
     "undici-types": ["undici-types@8.9.0", "", {}, "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg=="],
+
+    "@rhythmjs/cli/@rhythmjs/rhythm": ["@rhythmjs/rhythm@0.0.11", "", {}, "sha512-+e3eQSsh/3wRGiF9sqtO6rkSa75eH8aDumgfwr2mAWdxy7s/14ns8Fx9uIT8AzXWKYTUsqBY2ITkw4YS3sENDg=="],
   }
 }

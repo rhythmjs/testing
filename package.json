@@ -1,6 +1,6 @@
 {
   "name": "@rhythmjs/testing",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Testing utilities for Rhythm: kernel module mocking, a fetch-based router test client, a CLI command runner, and WebSocket hook harnesses.",
   "keywords": [
     "cli",
@@ -57,8 +57,8 @@
   },
   "devDependencies": {
     "@rhythmjs/cli": "^0.0.11",
-    "@rhythmjs/rhythm": "^0.0.11",
-    "@rhythmjs/router": "^0.0.11",
+    "@rhythmjs/rhythm": "^0.0.14",
+    "@rhythmjs/router": "^0.0.13",
     "@rhythmjs/ws": "^0.0.3",
     "@types/bun": "^1.2.0",
     "@types/node": "^26.6.3",
@@ -68,8 +68,8 @@
   },
   "peerDependencies": {
     "@rhythmjs/cli": "^0.0.11",
-    "@rhythmjs/rhythm": "^0.0.11",
-    "@rhythmjs/router": "^0.0.11",
+    "@rhythmjs/rhythm": "^0.0.14",
+    "@rhythmjs/router": "^0.0.13",
     "@rhythmjs/ws": "^0.0.3"
   },
   "peerDependenciesMeta": {
