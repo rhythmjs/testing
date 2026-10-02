@@ -16,10 +16,10 @@
         "typescript": "^7.0.2",
       },
       "peerDependencies": {
-        "@rhythmjs/cli": "^0.0.11",
-        "@rhythmjs/rhythm": "^0.0.14",
-        "@rhythmjs/router": "^0.0.13",
-        "@rhythmjs/ws": "^0.0.3",
+        "@rhythmjs/cli": ">=0.0.14",
+        "@rhythmjs/rhythm": ">=0.0.14",
+        "@rhythmjs/router": ">=0.0.13",
+        "@rhythmjs/ws": ">=0.0.4",
       },
       "optionalPeers": [
         "@rhythmjs/cli",
