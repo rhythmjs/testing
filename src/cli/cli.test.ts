@@ -51,20 +51,15 @@ describe("createCliRunner", () => {
     expect(result.stdout).toEqual(["got: piped input"]);
   });
 
-  test("accepts a full Rhythm app and disposes providers on teardown", async () => {
-    let disposed = false;
-    const app = new Rhythm<RhythmCliContext>()
-      .provide(
-        () => ({ service: { ok: true } }),
-        () => void (disposed = true),
-      )
-      .use(greetCli().middleware());
-    const runner = createCliRunner(app as never);
+  test("accepts a full Rhythm app and injects mock startup values via context", async () => {
+    const app = new Rhythm<RhythmCliContext, { prefix: string }>().use(async (ctx, next) => {
+      ctx.response.stdout.push(`${ctx.prefix} grace`);
+      await next();
+    });
+    app.context.prefix = "real";
+    const runner = createCliRunner(app, { context: { prefix: "mock" } });
 
-    const result = await runner.run("greet grace");
-    expect(result.stdout).toEqual(["hello grace"]);
-
-    await runner.teardown();
-    expect(disposed).toBe(true);
+    const result = await runner.run("anything");
+    expect(result.stdout).toEqual(["mock grace"]);
   });
 });

@@ -56,9 +56,9 @@
     "check": "bun run fmt:check && bun run lint && bun run typecheck"
   },
   "devDependencies": {
-    "@rhythmjs/cli": "^0.0.11",
-    "@rhythmjs/rhythm": "^0.0.14",
-    "@rhythmjs/router": "^0.0.13",
+    "@rhythmjs/cli": "^0.0.15",
+    "@rhythmjs/rhythm": "^0.0.15",
+    "@rhythmjs/router": "^0.0.14",
     "@rhythmjs/ws": "^0.0.3",
     "@types/bun": "^1.2.0",
     "@types/node": "^26.6.3",
@@ -67,9 +67,9 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "@rhythmjs/cli": ">=0.0.14",
-    "@rhythmjs/rhythm": ">=0.0.14",
-    "@rhythmjs/router": ">=0.0.13",
+    "@rhythmjs/cli": ">=0.0.15",
+    "@rhythmjs/rhythm": ">=0.0.15",
+    "@rhythmjs/router": ">=0.0.14",
     "@rhythmjs/ws": ">=0.0.4"
   },
   "peerDependenciesMeta": {

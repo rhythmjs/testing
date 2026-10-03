@@ -17,25 +17,9 @@ describe("mockModule", () => {
       .register(mockModule({ configService: fakeConfigService }), (m) => ({ configService: m.configService }))
       .register(apiModule);
 
-    await app.setup();
     await app.run({});
 
     expect(seen).toEqual([8080]);
-  });
-
-  test("runs its dispose on teardown", async () => {
-    let disposed = false;
-    const app = new Rhythm().register(
-      mockModule({ db: { fake: true } }, () => void (disposed = true)),
-      (m) => ({
-        db: m.db,
-      }),
-    );
-
-    await app.setup();
-    await app.teardown();
-
-    expect(disposed).toBe(true);
   });
 });
 

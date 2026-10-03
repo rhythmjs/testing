@@ -57,20 +57,26 @@ describe("createTestClient", () => {
     expect(res.status).toBe(200);
   });
 
-  test("teardown disposes the app's providers", async () => {
-    let disposed = false;
-    const app = new Rhythm<RhythmHttpContext>()
-      .provide(
-        () => ({ service: { ok: true } }),
-        () => void (disposed = true),
-      )
-      .use(echoRouter().middleware());
-    const client = createTestClient(app as never);
+  test("context option injects mock startup values, and typechecks with startup-context apps", async () => {
+    type Db = { find: (id: string) => string };
+    const app = new Rhythm<RhythmHttpContext, { db: Db }>().use(async (ctx, next) => {
+      ctx.json({ user: ctx.db.find("7") });
+      await next();
+    });
+    app.context.db = { find: () => "real" };
 
-    await client.get("/hello");
-    await client.teardown();
+    const client = createTestClient(app, { context: { db: { find: (id) => `mock-${id}` } } });
 
-    expect(disposed).toBe(true);
+    expect(await (await client.get("/")).json()).toEqual({ user: "mock-7" });
+  });
+
+  test("context option reaches a bare router's wrapper app", async () => {
+    const router = new RhythmRouter<RhythmHttpContext & { label: string }, RhythmHttpContext>().get("/who", (ctx) => {
+      ctx.json({ label: ctx.label });
+    });
+    const client = createTestClient<{ label: string }>(router as never, { context: { label: "mocked" } });
+
+    expect(await (await client.get("/who")).json()).toEqual({ label: "mocked" });
   });
 });
 

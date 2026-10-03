@@ -3,6 +3,11 @@ import { RhythmCli } from "@rhythmjs/cli";
 import { parseArgv } from "@rhythmjs/cli/argv";
 import { RhythmCliResponse, type RhythmCliContext } from "@rhythmjs/cli/adapters/context";
 
+export interface CliRunnerOptions<TStartup extends object = {}> {
+  /** Startup values assigned onto the app's `context` before any run (mocks win over real ones). */
+  context?: Partial<TStartup>;
+}
+
 export interface CliRunOptions {
   stdin?: string;
 }
@@ -16,17 +21,20 @@ export interface CliRunResult<TContext extends RhythmCliContext = RhythmCliConte
 
 export interface CliRunner<TContext extends RhythmCliContext = RhythmCliContext> {
   run(argv: string | string[], options?: CliRunOptions): Promise<CliRunResult<TContext>>;
-  teardown(): Promise<void>;
 }
 
-type TestableCliApp = Rhythm<RhythmCliContext, RhythmCliContext & object, object>;
+type TestableCliApp<TStartup extends object> = Rhythm<RhythmCliContext, TStartup, any>;
 
 function isCli(value: object): value is RhythmCli {
   return value instanceof RhythmCli;
 }
 
-export function createCliRunner(app: TestableCliApp | RhythmCli): CliRunner {
-  const rhythm = isCli(app) ? new Rhythm<RhythmCliContext>().use(app.middleware()) : app;
+export function createCliRunner<TStartup extends object = {}>(
+  app: TestableCliApp<TStartup> | RhythmCli,
+  runnerOptions: CliRunnerOptions<TStartup> = {},
+): CliRunner {
+  const rhythm = isCli(app) ? new Rhythm<RhythmCliContext, TStartup>().use(app.middleware()) : app;
+  Object.assign(rhythm.context, runnerOptions.context);
   const callback = rhythm.callback();
 
   return {
@@ -44,6 +52,5 @@ export function createCliRunner(app: TestableCliApp | RhythmCli): CliRunner {
         exitCode: ctx.response.exitCode,
       };
     },
-    teardown: () => rhythm.teardown(),
   };
 }

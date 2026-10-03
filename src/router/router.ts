@@ -23,21 +23,26 @@ export interface TestClient {
   put(path: string, options?: TestRequestOptions): Promise<Response>;
   patch(path: string, options?: TestRequestOptions): Promise<Response>;
   delete(path: string, options?: TestRequestOptions): Promise<Response>;
-  teardown(): Promise<void>;
 }
 
-export interface TestClientOptions {
+export interface TestClientOptions<TStartup extends object = {}> {
   baseUrl?: string;
+  /** Startup values assigned onto the app's `context` before any request (mocks win over real ones). */
+  context?: Partial<TStartup>;
 }
 
-type TestableApp = Rhythm<RhythmHttpContext, RhythmHttpContext & object, object>;
+type TestableApp<TStartup extends object> = Rhythm<RhythmHttpContext, TStartup, any>;
 
 function isRouter(value: object): value is RhythmRouter {
   return value instanceof RhythmRouter;
 }
 
-export function createTestClient(app: TestableApp | RhythmRouter, options: TestClientOptions = {}): TestClient {
-  const rhythm = isRouter(app) ? new Rhythm<RhythmHttpContext>().use(app.middleware()) : app;
+export function createTestClient<TStartup extends object = {}>(
+  app: TestableApp<TStartup> | RhythmRouter,
+  options: TestClientOptions<TStartup> = {},
+): TestClient {
+  const rhythm = isRouter(app) ? new Rhythm<RhythmHttpContext, TStartup>().use(app.middleware()) : app;
+  Object.assign(rhythm.context, options.context);
   const handler = toFetchHandler(rhythm);
   const baseUrl = options.baseUrl ?? "http://localhost";
 
@@ -62,7 +67,6 @@ export function createTestClient(app: TestableApp | RhythmRouter, options: TestC
     put: (path, requestOptions) => request("PUT", path, requestOptions),
     patch: (path, requestOptions) => request("PATCH", path, requestOptions),
     delete: (path, requestOptions) => request("DELETE", path, requestOptions),
-    teardown: () => rhythm.teardown(),
   };
 }
 
