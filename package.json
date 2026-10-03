@@ -56,10 +56,10 @@
     "check": "bun run fmt:check && bun run lint && bun run typecheck"
   },
   "devDependencies": {
-    "@rhythmjs/cli": "^0.0.15",
-    "@rhythmjs/rhythm": "^0.0.15",
-    "@rhythmjs/router": "^0.0.14",
-    "@rhythmjs/ws": "^0.0.3",
+    "@rhythmjs/cli": "^0.0.16",
+    "@rhythmjs/rhythm": "^0.0.16",
+    "@rhythmjs/router": "^0.0.16",
+    "@rhythmjs/ws": "^0.0.4",
     "@types/bun": "^1.2.0",
     "@types/node": "^26.6.3",
     "oxlint": "^1.0.0",
