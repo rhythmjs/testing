@@ -1,6 +1,6 @@
 {
   "name": "@rhythmjs/testing",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Testing utilities for Rhythm: kernel module mocking, a fetch-based router test client, a CLI command runner, and WebSocket hook harnesses.",
   "keywords": [
     "cli",
@@ -59,7 +59,7 @@
     "@rhythmjs/cli": "^0.0.20",
     "@rhythmjs/rhythm": "^0.0.20",
     "@rhythmjs/router": "^0.0.20",
-    "@rhythmjs/ws": "^0.0.6",
+    "@rhythmjs/ws": "^0.0.8",
     "@types/bun": "^1.2.0",
     "@types/node": "^26.6.3",
     "oxlint": "^1.0.0",
