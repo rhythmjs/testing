@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { Middleware } from "@rhythmjs/rhythm/types";
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, decorate, mount, type Middleware } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { createTestClient, runHttpMiddleware } from "./router";
 
 const echoRouter = () =>
@@ -19,7 +18,7 @@ const echoRouter = () =>
 
 describe("createTestClient", () => {
   test("drives a full Rhythm app over fetch semantics", async () => {
-    const client = createTestClient(new Rhythm<RhythmHttpContext>().use(echoRouter().middleware()));
+    const client = createTestClient(new Rhythm().use(mount(echoRouter())));
 
     const res = await client.get("/hello");
     expect(res.status).toBe(200);
@@ -57,24 +56,23 @@ describe("createTestClient", () => {
     expect(res.status).toBe(200);
   });
 
-  test("context option injects mock startup values, and typechecks with startup-context apps", async () => {
+  test("context option replaces startup values of a Rhythm app", async () => {
     type Db = { find: (id: string) => string };
-    const app = new Rhythm<RhythmHttpContext, { db: Db }>().use(async (ctx, next) => {
+    const router = new RhythmRouter<{ db: Db }>().get("/", (ctx) => {
       ctx.json({ user: ctx.db.find("7") });
-      await next();
     });
-    app.context.db = { find: () => "real" };
+    const app = new Rhythm().register(decorate(() => ({ db: { find: () => "real" } as Db }))).use(mount(router));
 
     const client = createTestClient(app, { context: { db: { find: (id) => `mock-${id}` } } });
 
     expect(await (await client.get("/")).json()).toEqual({ user: "mock-7" });
   });
 
-  test("context option reaches a bare router's wrapper app", async () => {
-    const router = new RhythmRouter<RhythmHttpContext & { label: string }, RhythmHttpContext>().get("/who", (ctx) => {
+  test("context option supplies a bare router's required input", async () => {
+    const router = new RhythmRouter<{ label: string }>().get("/who", (ctx) => {
       ctx.json({ label: ctx.label });
     });
-    const client = createTestClient<{ label: string }>(router as never, { context: { label: "mocked" } });
+    const client = createTestClient(router, { context: { label: "mocked" } });
 
     expect(await (await client.get("/who")).json()).toEqual({ label: "mocked" });
   });

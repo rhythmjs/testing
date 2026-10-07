@@ -1,22 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { RhythmCli } from "@rhythmjs/cli";
-import type { RhythmCliContext } from "@rhythmjs/cli/adapters/context";
+import { withParsedArgv } from "@rhythmjs/cli/argv";
 import { createCliRunner } from "./cli";
 
 const greetCli = () =>
   new RhythmCli()
-    .command("greet :name", (ctx) => {
-      const shout = ctx.flags.shout === true;
-      const line = `hello ${ctx.args.name}`;
-      ctx.response.print(shout ? line.toUpperCase() : line);
+    .use(withParsedArgv())
+    .cmd("greet :name", (ctx) => {
+      const line = `hello ${ctx.params.name}`;
+      ctx.log(ctx.flags.shout === true ? line.toUpperCase() : line);
     })
-    .command("fail", (ctx) => {
-      ctx.response.printError("boom").exit(1);
-    })
-    .command("drain", async (ctx) => {
-      const text = ctx.stdin === null ? "" : await new Response(ctx.stdin).text();
-      ctx.response.print(`got: ${text.trim()}`);
+    .cmd("fail", (ctx) => {
+      ctx.fail("boom", 3);
     });
 
 describe("createCliRunner", () => {
@@ -24,42 +20,47 @@ describe("createCliRunner", () => {
     const runner = createCliRunner(greetCli());
 
     const result = await runner.run("greet ada");
-    expect(result.stdout).toEqual(["hello ada"]);
-    expect(result.stderr).toEqual([]);
+    expect(result.stdout).toBe("hello ada\n");
+    expect(result.stderr).toBe("");
     expect(result.exitCode).toBe(0);
   });
 
-  test("parses flags from the argv", async () => {
+  test("accepts an argv array and parses flags", async () => {
     const runner = createCliRunner(greetCli());
 
     const result = await runner.run(["greet", "ada", "--shout"]);
-    expect(result.stdout).toEqual(["HELLO ADA"]);
+    expect(result.stdout).toBe("HELLO ADA\n");
   });
 
   test("captures stderr and exit codes", async () => {
     const runner = createCliRunner(greetCli());
 
     const result = await runner.run("fail");
-    expect(result.stderr).toEqual(["boom"]);
-    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toBe("error: boom\n");
+    expect(result.exitCode).toBe(3);
   });
 
-  test("feeds a stdin string to the command", async () => {
-    const runner = createCliRunner(greetCli());
+  test("reports an unknown command like the real runner", async () => {
+    const result = await createCliRunner(greetCli()).run("nope");
 
-    const result = await runner.run("drain", { stdin: "piped input\n" });
-    expect(result.stdout).toEqual(["got: piped input"]);
+    expect(result.stderr).toBe("error: unknown command 'nope'\n");
+    expect(result.exitCode).toBe(2);
   });
 
-  test("accepts a full Rhythm app and injects mock startup values via context", async () => {
-    const app = new Rhythm<RhythmCliContext, { prefix: string }>().use(async (ctx, next) => {
-      ctx.response.stdout.push(`${ctx.prefix} grace`);
-      await next();
-    });
-    app.context.prefix = "real";
+  test("context option replaces startup values of a Rhythm app", async () => {
+    const cli = new RhythmCli<{ prefix: string }>().cmd("hi :name", (ctx) =>
+      ctx.log(`${ctx.prefix} ${ctx.params.name}`),
+    );
+    const app = new Rhythm().register(decorate(() => ({ prefix: "real" }))).use(mount(cli));
     const runner = createCliRunner(app, { context: { prefix: "mock" } });
 
-    const result = await runner.run("anything");
-    expect(result.stdout).toEqual(["mock grace"]);
+    expect((await runner.run("hi grace")).stdout).toBe("mock grace\n");
+  });
+
+  test("context option supplies a bare CLI's required input", async () => {
+    const cli = new RhythmCli<{ prefix: string }>().cmd("hi", (ctx) => ctx.log(ctx.prefix));
+    const runner = createCliRunner(cli, { context: { prefix: "given" } });
+
+    expect((await runner.run("hi")).stdout).toBe("given\n");
   });
 });

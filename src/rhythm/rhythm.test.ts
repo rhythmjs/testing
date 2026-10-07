@@ -1,25 +1,35 @@
 import { describe, expect, test } from "bun:test";
-import type { Middleware } from "@rhythmjs/rhythm/types";
-import { Rhythm } from "@rhythmjs/rhythm";
-import { mockModule, runMiddleware } from "./rhythm";
+import { Rhythm, decorate, include, type Middleware } from "@rhythmjs/rhythm";
+import { mockModule, runMiddleware, withMockContext } from "./rhythm";
 
 describe("mockModule", () => {
   test("stands in for a real module with typed exports", async () => {
     const fakeConfigService = { get: (key: string) => (key === "port" ? 8080 : undefined) };
     const seen: unknown[] = [];
 
-    const apiModule = new Rhythm<{ configService: typeof fakeConfigService }>().use(async (ctx, next) => {
-      seen.push(ctx.configService.get("port"));
-      await next();
-    });
-
     const app = new Rhythm()
-      .register(mockModule({ configService: fakeConfigService }), (m) => ({ configService: m.configService }))
-      .register(apiModule);
+      .register(
+        // production: include(configModule, (m) => ({ configService: m.configService }))
+        include(mockModule({ configService: fakeConfigService }), (m) => ({ configService: m.configService })),
+      )
+      .use(async (ctx, next) => {
+        seen.push(ctx.configService.get("port"));
+        await next();
+      });
 
-    await app.run({});
+    await app.callback()();
 
     expect(seen).toEqual([8080]);
+  });
+});
+
+describe("withMockContext", () => {
+  test("mock values replace real startup values", async () => {
+    const app = new Rhythm().register(decorate(() => ({ name: "real" })));
+
+    const ctx = (await withMockContext(app, { name: "mock" }).callback()({})) as { name: string };
+
+    expect(ctx.name).toBe("mock");
   });
 });
 

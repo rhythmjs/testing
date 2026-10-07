@@ -1,56 +1,45 @@
-import { Rhythm } from "@rhythmjs/rhythm";
-import { RhythmCli } from "@rhythmjs/cli";
-import { parseArgv } from "@rhythmjs/cli/argv";
-import { RhythmCliResponse, type RhythmCliContext } from "@rhythmjs/cli/adapters/context";
+import type { Mountable } from "@rhythmjs/rhythm";
+import type { RhythmCliContext } from "@rhythmjs/cli/context";
+import { toCliHandler } from "@rhythmjs/cli/run";
+import { withMockContext, type MockContext } from "../rhythm/rhythm";
 
-export interface CliRunnerOptions<TStartup extends object = {}> {
-  /** Startup values assigned onto the app's `context` before any run (mocks win over real ones). */
-  context?: Partial<TStartup>;
+export interface CliRunnerOptions<TContext extends object = {}> {
+  /** Values assigned onto every run's context (mocks win over real startup values). */
+  context?: Partial<TContext>;
 }
 
-export interface CliRunOptions {
-  stdin?: string;
-}
-
-export interface CliRunResult<TContext extends RhythmCliContext = RhythmCliContext> {
-  ctx: TContext;
-  stdout: string[];
-  stderr: string[];
+export interface CliRunResult {
+  /** Everything written to stdout, newlines included. */
+  stdout: string;
+  /** Everything written to stderr, newlines included. */
+  stderr: string;
   exitCode: number;
 }
 
-export interface CliRunner<TContext extends RhythmCliContext = RhythmCliContext> {
-  run(argv: string | string[], options?: CliRunOptions): Promise<CliRunResult<TContext>>;
+export interface CliRunner {
+  run(argv: string | string[]): Promise<CliRunResult>;
 }
 
-type TestableCliApp<TStartup extends object> = Rhythm<RhythmCliContext, TStartup, any>;
+/** Fields of an app's startup context and input that can be mocked, minus the CLI base the runner supplies. */
+type Mockable<TApp> = Omit<MockContext<TApp>, keyof RhythmCliContext>;
 
-function isCli(value: object): value is RhythmCli {
-  return value instanceof RhythmCli;
-}
-
-export function createCliRunner<TStartup extends object = {}>(
-  app: TestableCliApp<TStartup> | RhythmCli,
-  runnerOptions: CliRunnerOptions<TStartup> = {},
+/** Runs a `Rhythm` app or a bare `RhythmCli` (anything mountable that accepts the CLI context) in memory. */
+export function createCliRunner<TApp extends Mountable>(
+  app: TApp & (RhythmCliContext & Mockable<TApp> extends NonNullable<TApp["~input"]> ? unknown : never),
+  runnerOptions: CliRunnerOptions<Mockable<TApp>> = {},
 ): CliRunner {
-  const rhythm = isCli(app) ? new Rhythm<RhythmCliContext, TStartup>().use(app.middleware()) : app;
-  Object.assign(rhythm.context, runnerOptions.context);
-  const callback = rhythm.callback();
+  const mocked = withMockContext(app, runnerOptions.context);
 
   return {
-    run: async (argv, options = {}) => {
+    run: async (argv) => {
+      const out: string[] = [];
+      const err: string[] = [];
       const argvList = typeof argv === "string" ? argv.trim().split(/\s+/).filter(Boolean) : [...argv];
-      const { flags } = parseArgv(argvList);
-      const stdin = options.stdin === undefined ? null : new Response(options.stdin).body;
-
-      const ctx = await callback({ argv: argvList, flags, stdin, response: new RhythmCliResponse() });
-
-      return {
-        ctx,
-        stdout: [...ctx.response.stdout],
-        stderr: [...ctx.response.stderr],
-        exitCode: ctx.response.exitCode,
-      };
+      const exitCode = await toCliHandler(mocked, {
+        stdout: { write: (text) => out.push(text) },
+        stderr: { write: (text) => err.push(text) },
+      })(argvList);
+      return { stdout: out.join(""), stderr: err.join(""), exitCode };
     },
   };
 }

@@ -1,9 +1,7 @@
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { Middleware } from "@rhythmjs/rhythm/types";
-import { RhythmRouter } from "@rhythmjs/router";
+import type { Middleware, Mountable } from "@rhythmjs/rhythm";
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-import { createHttpContext, toResponse, type RhythmHttpContext } from "@rhythmjs/router/adapters/context";
-import { runMiddleware } from "../rhythm/rhythm";
+import { createHttpContext, toResponse, type RhythmHttpContext } from "@rhythmjs/router/context";
+import { runMiddleware, withMockContext, type MockContext } from "../rhythm/rhythm";
 
 export type TestRequestHeaders = ConstructorParameters<typeof Headers>[0];
 export type TestRequestBody = NonNullable<ConstructorParameters<typeof Response>[0]>;
@@ -25,25 +23,21 @@ export interface TestClient {
   delete(path: string, options?: TestRequestOptions): Promise<Response>;
 }
 
-export interface TestClientOptions<TStartup extends object = {}> {
+export interface TestClientOptions<TContext extends object = {}> {
   baseUrl?: string;
-  /** Startup values assigned onto the app's `context` before any request (mocks win over real ones). */
-  context?: Partial<TStartup>;
+  /** Values assigned onto every request's context (mocks win over real startup values). */
+  context?: Partial<TContext>;
 }
 
-type TestableApp<TStartup extends object> = Rhythm<RhythmHttpContext, TStartup, any>;
+/** Fields of an app's startup context and input that can be mocked, minus the HTTP base the client supplies. */
+type Mockable<TApp> = Omit<MockContext<TApp>, keyof RhythmHttpContext>;
 
-function isRouter(value: object): value is RhythmRouter {
-  return value instanceof RhythmRouter;
-}
-
-export function createTestClient<TStartup extends object = {}>(
-  app: TestableApp<TStartup> | RhythmRouter,
-  options: TestClientOptions<TStartup> = {},
+/** Drives a `Rhythm` app or a bare `RhythmRouter` (anything mountable that accepts the HTTP context). */
+export function createTestClient<TApp extends Mountable>(
+  app: TApp & (RhythmHttpContext & Mockable<TApp> extends NonNullable<TApp["~input"]> ? unknown : never),
+  options: TestClientOptions<Mockable<TApp>> = {},
 ): TestClient {
-  const rhythm = isRouter(app) ? new Rhythm<RhythmHttpContext, TStartup>().use(app.middleware()) : app;
-  Object.assign(rhythm.context, options.context);
-  const handler = toFetchHandler(rhythm);
+  const handler = toFetchHandler(withMockContext(app, options.context));
   const baseUrl = options.baseUrl ?? "http://localhost";
 
   const request = (method: string, path: string, requestOptions: TestRequestOptions = {}): Promise<Response> => {

@@ -1,4 +1,6 @@
-import type { RhythmWs, Server } from "@rhythmjs/ws";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import { websocket, type RhythmWs } from "@rhythmjs/ws";
 
 export interface MockWs<Data extends object = Record<string, string>> {
   data: Data;
@@ -52,15 +54,18 @@ export function mockWs<Data extends object = Record<string, string>>(data: Data)
 }
 
 export interface WsUpgradeResult<Data extends object = Record<string, string>> {
-  matched: boolean;
   upgraded: boolean;
+  /** The response of a rejected or unmatched upgrade; `null` when the connection was accepted. */
   response: Response | null;
+  /** The `ws.data` the route attached to the connection. */
   data: Data | null;
   headers: Bun.HeadersInit | null;
+  /** A recording peer built on `data`, ready for `fireOpen` / `fireMessage` / `fireClose`. */
+  peer: MockWs<Data> | null;
 }
 
 export async function upgradeWs<Data extends object = Record<string, string>>(
-  ws: RhythmWs,
+  ws: RhythmWs<any, any>,
   request: string | Request,
 ): Promise<WsUpgradeResult<Data>> {
   const req =
@@ -68,52 +73,37 @@ export async function upgradeWs<Data extends object = Record<string, string>>(
       ? new Request(new URL(request, "http://localhost").toString(), { headers: { upgrade: "websocket" } })
       : request;
 
-  let didUpgrade = false;
-  let captured: { data: unknown; headers: Bun.HeadersInit | null } = { data: null, headers: null };
+  let captured: { data: unknown; headers: Bun.HeadersInit | null } | undefined;
   const server = {
     upgrade(_request: Request, options?: { data?: unknown; headers?: Bun.HeadersInit }) {
-      didUpgrade = true;
       captured = { data: options?.data, headers: options?.headers ?? null };
       return true;
     },
-  } as unknown as Server;
+  } as unknown as Bun.Server<unknown>;
 
-  const pending = ws.upgrade(req, server);
-  if (pending === null) return { matched: false, upgraded: false, response: null, data: null, headers: null };
-  const response = (await pending) ?? null;
-  const upgraded = didUpgrade && response === null;
-  return {
-    matched: true,
-    upgraded,
-    response,
-    data: upgraded ? (captured.data as Data) : null,
-    headers: upgraded ? captured.headers : null,
-  };
+  const response = await toFetchHandler(new Rhythm().use(mount(ws)))(req, server);
+  if (!captured) return { upgraded: false, response, data: null, headers: null, peer: null };
+  const data = captured.data as Data;
+  return { upgraded: true, response: null, data, headers: captured.headers, peer: mockWs(data) };
 }
 
-export function fireOpen<Data extends object>(ws: RhythmWs, peer: MockWs<Data>): void | Promise<void> {
-  return ws.websocket.open?.(peer as never);
+export function fireOpen<Data extends object>(peer: MockWs<Data>): void | Promise<void> {
+  return websocket.open?.(peer as never);
 }
 
 export function fireMessage<Data extends object>(
-  ws: RhythmWs,
   peer: MockWs<Data>,
   data: string | Uint8Array | object,
 ): void | Promise<void> {
   const message =
     typeof data === "string" ? data : data instanceof Uint8Array ? Buffer.from(data) : JSON.stringify(data);
-  return ws.websocket.message(peer as never, message);
+  return websocket.message(peer as never, message);
 }
 
-export function fireClose<Data extends object>(
-  ws: RhythmWs,
-  peer: MockWs<Data>,
-  code = 1000,
-  reason = "",
-): void | Promise<void> {
-  return ws.websocket.close?.(peer as never, code, reason);
+export function fireClose<Data extends object>(peer: MockWs<Data>, code = 1000, reason = ""): void | Promise<void> {
+  return websocket.close?.(peer as never, code, reason);
 }
 
-export function fireDrain<Data extends object>(ws: RhythmWs, peer: MockWs<Data>): void | Promise<void> {
-  return ws.websocket.drain?.(peer as never);
+export function fireDrain<Data extends object>(peer: MockWs<Data>): void | Promise<void> {
+  return websocket.drain?.(peer as never);
 }
