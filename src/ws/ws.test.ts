@@ -1,12 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { RhythmWs } from "@rhythmjs/ws";
 import { fireClose, fireMessage, fireOpen, mockWs, upgradeWs } from "./ws";
+import { error } from "@rhythmjs/router/response";
 
 const chatWs = () =>
   new RhythmWs()
     .use(async (ctx, next) => {
       if (ctx.request.headers.get("x-key") === "secret") await next();
-      else ctx.error(401, "Unauthorized");
+      else error(ctx, 401, "Unauthorized");
     })
     .ws("/chat/:room", {
       upgrade: (ctx) => ({ room: ctx.params.room, topic: `room:${ctx.params.room}` }),
@@ -49,7 +50,7 @@ describe("upgradeWs", () => {
 
   test("reports a route-upgrade rejection and captured headers", async () => {
     const guarded = new RhythmWs().ws("/vip", {
-      upgrade: (ctx) => (ctx.request.headers.get("x-vip") === "yes" ? { vip: true } : ctx.error(403, "Forbidden")),
+      upgrade: (ctx) => (ctx.request.headers.get("x-vip") === "yes" ? { vip: true } : error(ctx, 403, "Forbidden")),
       headers: { "x-served-by": "vip" },
     });
 

@@ -37,7 +37,8 @@ export function createTestClient<TApp extends Mountable>(
   app: TApp & (RhythmHttpContext & Mockable<TApp> extends NonNullable<TApp["~input"]> ? unknown : never),
   options: TestClientOptions<Mockable<TApp>> = {},
 ): TestClient {
-  const handler = toFetchHandler(withMockContext(app, options.context));
+  const fetchHandler = toFetchHandler(withMockContext(app, options.context));
+  const handler = async (request: Request): Promise<Response> => fetchHandler(request);
   const baseUrl = options.baseUrl ?? "http://localhost";
 
   const request = (method: string, path: string, requestOptions: TestRequestOptions = {}): Promise<Response> => {

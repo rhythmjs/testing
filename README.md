@@ -22,10 +22,10 @@ Requires Bun `>=1.2.0`. The packages you test are peer dependencies:
 
 | Peer               | Range      | Needed for                                    |
 | ------------------ | ---------- | --------------------------------------------- |
-| `@rhythmjs/rhythm` | `>=0.0.18` | always (required)                             |
-| `@rhythmjs/router` | `>=0.0.18` | `/router` (optional)                          |
-| `@rhythmjs/cli`    | `>=0.0.18` | `/cli` (optional)                             |
-| `@rhythmjs/ws`     | `>=0.0.6`  | `/ws` (optional)                              |
+| `@rhythmjs/rhythm` | `>=0.0.24` | always (required)                             |
+| `@rhythmjs/router` | `>=0.0.24` | `/router` (optional)                          |
+| `@rhythmjs/cli`    | `>=0.0.24` | `/cli` (optional)                             |
+| `@rhythmjs/ws`     | `>=0.0.10` | `/ws` (optional)                              |
 
 ```sh
 bun add @rhythmjs/rhythm @rhythmjs/router @rhythmjs/cli @rhythmjs/ws
@@ -148,18 +148,19 @@ app provides with `decorate`:
 // src/users.ts
 import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
+import { error, json } from "@rhythmjs/router/response";
 
 export type UserService = { find: (id: string) => { id: string; name: string } | undefined };
 
 export const usersRouter = new RhythmRouter<{ userService: UserService }>()
   .get("/users/:id", (ctx) => {
     const user = ctx.userService.find(ctx.params.id);
-    if (!user) return ctx.error(404);
-    ctx.json(user);
+    if (!user) return error(ctx, 404);
+    json(ctx, user);
   })
   .post("/users", async (ctx) => {
     const body = (await ctx.request.json()) as { name: string };
-    ctx.json({ created: body.name });
+    json(ctx, { created: body.name });
   });
 
 export const app = new Rhythm()
@@ -228,10 +229,11 @@ import { expect, test } from "bun:test";
 import type { Middleware } from "@rhythmjs/rhythm";
 import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { runHttpMiddleware } from "@rhythmjs/testing/router";
+import { error, json } from "@rhythmjs/router/response";
 
 const guard: Middleware<RhythmHttpContext> = async (ctx, next) => {
   if (ctx.request.headers.get("x-key") !== "secret") {
-    ctx.error(401);
+    error(ctx, 401);
     return;
   }
   await next();
@@ -257,7 +259,7 @@ test("passes a valid key", async () => {
 
 test("extras stand in for derived fields", async () => {
   const usesService: Middleware<RhythmHttpContext & { userService: { name: () => string } }> = async (ctx, next) => {
-    ctx.json({ user: ctx.userService.name() });
+    json(ctx, { user: ctx.userService.name() });
     await next();
   };
 
@@ -300,15 +302,16 @@ A small CLI with a command that uses an injected service and a command that fail
 import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { RhythmCli } from "@rhythmjs/cli";
 import { withParsedArgv } from "@rhythmjs/cli/argv";
+import { fail, log } from "@rhythmjs/cli/output";
 
 export const cli = new RhythmCli<{ prefix: string }>()
   .use(withParsedArgv())
   .cmd("greet :name", (ctx) => {
     const line = `${ctx.prefix} ${ctx.params.name}`;
-    ctx.log(ctx.flags.shout === true ? line.toUpperCase() : line);
+    log(ctx, ctx.flags.shout === true ? line.toUpperCase() : line);
   })
   .cmd("fail", (ctx) => {
-    ctx.fail("boom", 3);
+    fail(ctx, "boom", 3);
   });
 
 export const app = new Rhythm().register(decorate(() => ({ prefix: "hello" }))).use(mount(cli));
@@ -393,11 +396,12 @@ hooks:
 // src/chat.ts
 import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmWs } from "@rhythmjs/ws";
+import { error } from "@rhythmjs/router/response";
 
 export const chatWs = new RhythmWs()
   .use(async (ctx, next) => {
     if (ctx.request.headers.get("x-key") === "secret") await next();
-    else ctx.error(401, "Unauthorized");
+    else error(ctx, 401, "Unauthorized");
   })
   .ws("/chat/:room", {
     upgrade: (ctx) => ({ room: ctx.params.room, topic: `room:${ctx.params.room}` }),

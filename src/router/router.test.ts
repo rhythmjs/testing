@@ -3,14 +3,15 @@ import { Rhythm, decorate, mount, type Middleware } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { createTestClient, runHttpMiddleware } from "./router";
+import { error, json } from "@rhythmjs/router/response";
 
 const echoRouter = () =>
   new RhythmRouter()
     .get("/hello", (ctx) => {
-      ctx.json({ message: "hi" });
+      json(ctx, { message: "hi" });
     })
     .post("/echo", async (ctx) => {
-      ctx.json({ received: await ctx.request.json(), type: ctx.request.headers.get("content-type") });
+      json(ctx, { received: await ctx.request.json(), type: ctx.request.headers.get("content-type") });
     })
     .delete("/items/:id", (ctx) => {
       ctx.response.status = 204;
@@ -59,7 +60,7 @@ describe("createTestClient", () => {
   test("context option replaces startup values of a Rhythm app", async () => {
     type Db = { find: (id: string) => string };
     const router = new RhythmRouter<{ db: Db }>().get("/", (ctx) => {
-      ctx.json({ user: ctx.db.find("7") });
+      json(ctx, { user: ctx.db.find("7") });
     });
     const app = new Rhythm().register(decorate(() => ({ db: { find: () => "real" } as Db }))).use(mount(router));
 
@@ -70,7 +71,7 @@ describe("createTestClient", () => {
 
   test("context option supplies a bare router's required input", async () => {
     const router = new RhythmRouter<{ label: string }>().get("/who", (ctx) => {
-      ctx.json({ label: ctx.label });
+      json(ctx, { label: ctx.label });
     });
     const client = createTestClient(router, { context: { label: "mocked" } });
 
@@ -81,7 +82,7 @@ describe("createTestClient", () => {
 describe("runHttpMiddleware", () => {
   const guard: Middleware<RhythmHttpContext> = async (ctx, next) => {
     if (ctx.request.headers.get("x-key") !== "secret") {
-      ctx.error(401);
+      error(ctx, 401);
       return;
     }
     await next();
@@ -108,7 +109,7 @@ describe("runHttpMiddleware", () => {
 
   test("extras are merged into the context for derive-style middleware", async () => {
     const usesService: Middleware<RhythmHttpContext & { userService: { name: () => string } }> = async (ctx, next) => {
-      ctx.json({ user: ctx.userService.name() });
+      json(ctx, { user: ctx.userService.name() });
       await next();
     };
 
